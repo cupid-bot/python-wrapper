@@ -1,37 +1,9 @@
 """JSON types returned or accepted by the API."""
 import enum
-import pydantic
 from datetime import datetime
 from typing import Optional, Union
 
-
-__all__ = (
-    'App',
-    'AppWithToken',
-    'AuthenticatedEntity',
-    'AuthenticatedEntityWithToken',
-    'BadAuthenticationError',
-    'ConflictError',
-    'CupidClientError',
-    'CupidError',
-    'CupidServerError',
-    'DiscordAuthenticate',
-    'ForbiddenError',
-    'Gender',
-    'GraphData',
-    'NotFoundError',
-    'PaginatedUsers',
-    'PartialRelationship',
-    'Relationship',
-    'RelationshipKind',
-    'Session',
-    'SessionWithToken',
-    'User',
-    'UserData',
-    'UserSearch',
-    'ValidationError',
-    'ValidationProblem',
-)
+import pydantic
 
 
 class Gender(enum.Enum):
@@ -63,6 +35,18 @@ class DiscordAuthenticate(pydantic.BaseModel):
     token: str
 
 
+class RelationshipCreate(pydantic.BaseModel):
+    """Model for creating a relationship."""
+
+    kind: RelationshipKind
+
+
+class GenderUpdate(pydantic.BaseModel):
+    """Model for updating a user's gender."""
+
+    gender: Gender
+
+
 class UserData(pydantic.BaseModel):
     """Data relating to a user, not including ID."""
 
@@ -72,7 +56,7 @@ class UserData(pydantic.BaseModel):
     gender: Gender
 
 
-class User(UserData):
+class UserModel(UserData):
     """A user as returned by the API."""
 
     id: int
@@ -85,24 +69,41 @@ class PartialRelationship(pydantic.BaseModel):
     initiator: int
     other: int
     kind: RelationshipKind
+    created_at: datetime
+    accepted_at: datetime
 
 
-class Relationship(pydantic.BaseModel):
+class RelationshipModel(pydantic.BaseModel):
     """Full data for a relationship."""
 
     id: int
-    initiator: User
-    other: User
+    initiator: UserModel
+    other: UserModel
     kind: RelationshipKind
     accepted: bool
     created_at: datetime
     accepted_at: Optional[datetime]
 
 
+class UserRelationships(pydantic.BaseModel):
+    """All of a user's relationships."""
+
+    accepted: list[RelationshipModel]
+    incoming: list[RelationshipModel]
+    outgoing: list[RelationshipModel]
+
+
+class UserWithRelationships(pydantic.BaseModel):
+    """A user with all of their relationships."""
+
+    user: UserModel
+    relationships: UserRelationships
+
+
 class GraphData(pydantic.BaseModel):
     """Raw data for a relationship graph."""
 
-    users: dict[int, User]
+    users: dict[int, UserModel]
     relationships: list[PartialRelationship]
 
 
@@ -113,31 +114,31 @@ class PaginatedUsers(pydantic.BaseModel):
     per_page: int
     pages: int
     total: int
-    users: list[User]
+    users: list[UserModel]
 
 
-class Session(pydantic.BaseModel):
+class UserSessionModel(pydantic.BaseModel):
     """A user authentication session."""
 
     id: int
-    user: User
+    user: UserModel
     expires_at: datetime
 
 
-class SessionWithToken(Session):
+class UserSessionModelWithToken(UserSessionModel):
     """A user authentication session including it's token."""
 
     token: str
 
 
-class App(pydantic.BaseModel):
+class AppModel(pydantic.BaseModel):
     """An API application."""
 
     id: int
     name: str
 
 
-class AppWithToken(App):
+class AppModelWithToken(AppModel):
     """An API application including it's token."""
 
     token: str
@@ -146,13 +147,13 @@ class AppWithToken(App):
 class AuthenticatedEntity(pydantic.BaseModel):
     """Either an API application or a user session."""
 
-    __root__: Union[App, Session]
+    __root__: Union[AppModel, UserSessionModel]
 
 
 class AuthenticatedEntityWithToken(pydantic.BaseModel):
     """Either an API application or a user session, including it's token."""
 
-    __root__: Union[AppWithToken, SessionWithToken]
+    __root__: Union[AppModelWithToken, UserSessionModelWithToken]
 
 
 class CupidError(Exception, pydantic.BaseModel):

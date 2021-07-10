@@ -1,4 +1,4 @@
-# Cupid Python Wrapper (0.1.0)
+# Cupid Python Wrapper (0.2.0)
 
 This is a wrapper written in Python for the Cupid API.
 
