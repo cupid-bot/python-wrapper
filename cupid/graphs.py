@@ -1,24 +1,33 @@
 """A utility for using the returned relationship graph."""
-from typing import Callable
+from typing import Callable, TYPE_CHECKING
 
-from .models import GraphData, RelationshipModel, UserModel
-from .users import User
+from .models import GraphData, UserModel
+from .relationships import Relationship
+
+if TYPE_CHECKING:
+    from .users import User
+
+
+__all__ = ('Graph',)
 
 
 class Graph:
     """The relationship graph returned by the API."""
 
+    users: dict[int, 'User']
+    relationships: list[Relationship]
+
     def __init__(
             self,
             data: GraphData,
-            get_user_client: Callable[[UserModel], User]):
+            get_user_client: Callable[[UserModel], 'User']):
         """Set up the relationship graph."""
         self.users = {
             id: get_user_client(raw)
             for id, raw in data.users.items()
         }
         self.relationships = [
-            RelationshipModel(
+            Relationship(
                 id=raw.id,
                 initiator=self.users[raw.initiator],
                 other=self.users[raw.other],

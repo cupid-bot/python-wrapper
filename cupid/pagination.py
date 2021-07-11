@@ -1,11 +1,15 @@
 """Tool for paginating a list of user results."""
 from __future__ import annotations
 
-from typing import Callable, Optional
+from typing import Callable, Optional, TYPE_CHECKING
 
-from .clients import AuthenticatedClient
-from .models import UserModel, UserSearch
-from .users import User
+if TYPE_CHECKING:
+    from .clients import AuthenticatedClient
+    from .models import UserModel, UserSearch
+    from .users import User
+
+
+__all__ = ('UserList',)
 
 
 class UserList:
@@ -13,9 +17,9 @@ class UserList:
 
     def __init__(
             self,
-            client: AuthenticatedClient,
-            search: UserSearch,
-            get_user_client: Callable[[UserModel], User]):
+            client: 'AuthenticatedClient',
+            search: 'UserSearch',
+            get_user_client: Callable[['UserModel'], 'User']):
         """Set up the paginator."""
         self.client = client
         self.search = search
@@ -30,14 +34,14 @@ class UserList:
         """
         return self.total_results
 
-    async def get_page(self, page: int = 0) -> list[User]:
+    async def get_page(self, page: int = 0) -> list['User']:
         """Get a specific page of results."""
         self.search.page = page
         raw = await self.client.get_user_page(self.search)
         self.total_results = raw.total
         return list(map(self._get_user_client, raw.users))
 
-    async def flatten(self, limit: Optional[int] = None) -> list[User]:
+    async def flatten(self, limit: Optional[int] = None) -> list['User']:
         """Get the full list of users.
 
         `limit` is a limit to the number of results to fetch.
@@ -67,7 +71,7 @@ class UserListPaginator:
         self.page = 0
         self.user_cache = []
 
-    async def __anext__(self) -> User:
+    async def __anext__(self) -> 'User':
         """Get the next user in the list."""
         if not self.user_cache:
             self.user_cache = await self.user_list.get_page(self.page)

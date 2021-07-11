@@ -4,12 +4,17 @@ from .clients import AppClient, UnauthenticatedClient, UserSessionClient
 from .models import DiscordAuthenticate
 
 
+__all__ = ('Cupid',)
+
+
 class Cupid:
     """Entry class for interacting with the Cupid API.
 
     This is the *only* class that should be directly instantiated by code using
     this wrapper.
     """
+
+    base_url: str
 
     def __init__(self, base_url: str = 'http://localhost:8000'):
         """Store the base URL of the API."""

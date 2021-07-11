@@ -26,9 +26,15 @@ flake8-self = "*"
 flake8-raise = "*"
 flake8-mutable = "*"
 mypy-extensions = "*"
+sphinx = "*"
+furo = "*"
 
 [scripts]
 lint = "python3 -m flake8 ."
+build-docs = "sphinx-build -b html docs/source docs/build"
 
 [requires]
 python_version = "3.9"
+
+[pipenv]
+allow_prereleases = true

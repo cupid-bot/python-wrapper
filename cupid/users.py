@@ -1,9 +1,8 @@
 """Combined models clients for users."""
 from __future__ import annotations
 
-from typing import Optional, Union
+from typing import Optional, TYPE_CHECKING, Union
 
-from .clients import AppUserClient, BaseUserClient
 from .models import (
     Gender,
     GenderUpdate,
@@ -12,34 +11,40 @@ from .models import (
     UserData,
     UserModel,
 )
-from .relationships import Relationship
+from .relationships import OwnRelationship
+
+if TYPE_CHECKING:
+    from .clients import BaseUserClient
+
+
+__all__ = ('User', 'UserAsApp', 'UserAsSelf')
 
 
 class User(UserModel):
     """A user model + client with no permission to do anything."""
 
-    def __init__(self, client: BaseUserClient, model: UserModel):
+    def __init__(self, client: 'BaseUserClient', model: UserModel):
         """Set up the user as a client and model."""
         self.client = client
         super().__init__(self, **model.dict())
 
 
 class UserAsSelf(User):
-    """A user client acting on it's own behalf."""
+    """A user client acting on its own behalf."""
 
     async def propose(
             self,
             other: User,
-            kind: Union[RelationshipKind, str]) -> Relationship:
+            kind: Union[RelationshipKind, str]) -> OwnRelationship:
         """Propose to another user."""
         data = RelationshipCreate(kind=kind)
         model = await self.client.propose_relationship(other.id, data)
-        return Relationship(self.client, model, self.id)
+        return OwnRelationship(self.client, model, self.id)
 
-    async def relationship(self, other: User) -> Relationship:
+    async def relationship(self, other: User) -> OwnRelationship:
         """Get the user's relationship with another user."""
         model = await self.client.get_relationship(other.id)
-        return Relationship(self.client, model, self.id)
+        return OwnRelationship(self.client, model, self.id)
 
     async def set_gender(self, gender: Union[Gender, str]):
         """Change the user's gender."""
@@ -51,8 +56,6 @@ class UserAsSelf(User):
 
 class UserAsApp(UserAsSelf):
     """A user model and client that is authenticated with an app token."""
-
-    client: AppUserClient
 
     async def edit(
             self,

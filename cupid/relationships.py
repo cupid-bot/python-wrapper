@@ -1,18 +1,37 @@
 """Model + client for a relationship between two users."""
-from .clients import BaseUserClient
-from .models import RelationshipModel
+from datetime import datetime
+from typing import Optional, TYPE_CHECKING
+
+from .models import RelationshipKind, RelationshipModel
+
+if TYPE_CHECKING:
+    from .clients import BaseUserClient
+    from .users import User
+
+
+__all__ = ('OwnRelationship', 'Relationship')
 
 
 class Relationship(RelationshipModel):
-    """Model + client for a relationship between two users.
+    """Relationship model with user clients instead of bare models."""
 
-    One of the users will be the authenticated client.
-    """
+    # Sphinx makes us re-define all class attributes to change any.
+    id: int
+    initiator: 'User'
+    other: 'User'
+    kind: RelationshipKind
+    accepted: bool
+    created_at: datetime
+    accepted_at: Optional[datetime]
+
+
+class OwnRelationship(Relationship):
+    """Relationship where one of the users is the authenticated client."""
 
     def __init__(
             self,
             model: RelationshipModel,
-            client: BaseUserClient,
+            client: 'BaseUserClient',
             own_id: int):
         """Set up the model and client."""
         self.own_id = own_id

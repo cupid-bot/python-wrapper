@@ -1,4 +1,6 @@
 """Combined models and clients for apps and user sessions."""
+from typing import Union
+
 from .clients import (
     AppClient,
     AppUserClient,
@@ -9,6 +11,8 @@ from .graphs import Graph
 from .models import (
     AppModel,
     AppModelWithToken,
+    Gender,
+    UserData,
     UserModel,
     UserSearch,
     UserSessionModel,
@@ -16,6 +20,9 @@ from .models import (
 )
 from .pagination import UserList
 from .users import User, UserAsApp, UserAsSelf
+
+
+__all__ = ('App', 'UserSession')
 
 
 class BaseAuth:
@@ -39,7 +46,7 @@ class BaseAuth:
         """Delete the app/client."""
         await self.client.delete_auth()
 
-    async def user(self, user_id: int) -> User:
+    async def get_user(self, user_id: int) -> User:
         """Get a user by ID."""
         model = await self.client.get_user(user_id)
         return self._get_user_client(model)
@@ -56,21 +63,46 @@ class BaseAuth:
 
 
 class App(BaseAuth, AppModelWithToken):
-    """An app and it's associated data."""
+    """An app and its associated data."""
 
     def __init__(self, client: AppClient, model: AppModel, token: str):
         """Set up the app as a client and model."""
         BaseAuth.__init__(self, client)
         AppModelWithToken.__init__(self, **model.dict(), token=token)
 
-    def get_user_client(self, user: UserModel) -> UserAsApp:
+    def _get_user_client(self, user: UserModel) -> UserAsApp:
         """Get a client for a user."""
         client = AppUserClient(token=self.token, user_id=user.id)
         return UserAsApp(client, user)
 
+    async def create_user(
+            self,
+            id: int,
+            *,
+            name: str,
+            discriminator: Union[str, int],
+            avatar_url: str,
+            gender: Union[Gender, str]) -> UserAsApp:
+        """Create a new user.
+
+        If the ID is already registered, updates and returns that user.
+        """
+        if isinstance(discriminator, int):
+            discriminator = f'{discriminator:>04}'
+        model = await self.client.set_user(
+            id,
+            UserData(
+                name=name or self.name,
+                discriminator=discriminator or self.discriminator,
+                avatar_url=avatar_url or self.avatar_url,
+                gender=gender or self.gender,
+            ),
+        )
+        return self._get_user_client(model)
+
 
 class UserSession(BaseAuth, UserSessionModelWithToken):
-    """A user session and it's associated data."""
+    """A user session and its associated data."""
 
     def __init__(
             self,
@@ -82,7 +114,7 @@ class UserSession(BaseAuth, UserSessionModelWithToken):
         UserSessionModelWithToken.__init__(self, **model.dict(), token=token)
         self.user = UserAsSelf(client, self.user)
 
-    def get_user_client(self, user: UserModel) -> User:
+    def _get_user_client(self, user: UserModel) -> User:
         """Get a client for a user."""
         if user.id == self.user.id:
             # Update our copy of the user with the new data, then return it.

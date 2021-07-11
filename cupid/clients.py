@@ -14,13 +14,12 @@ The following is the inheritance tree for the client types:
 
 Types marked in [brackets] are base classes not intended for direct use.
 """
-from typing import Any, Literal, Optional, Type, TypeVar, Union
+from typing import Any, Literal, Optional, TYPE_CHECKING, Type, TypeVar, Union
 
 import aiohttp
 
 import pydantic
 
-from .cupid import Cupid
 from .models import (
     AppModel,
     AppModelWithToken,
@@ -47,16 +46,23 @@ from .models import (
     ValidationError,
 )
 
+if TYPE_CHECKING:
+    from .cupid import Cupid
+
+
+__all__ = ()
+
 
 T = TypeVar('T', bound=Optional[pydantic.BaseModel])
 
 
-class BaseClient(aiohttp.Client):
+class BaseClient:
     """Cupid base client that provides utilities for making requests."""
 
-    def __init__(self, cupid: Cupid):
+    def __init__(self, cupid: 'Cupid'):
         """Set up the client."""
         self.cupid = cupid
+        self.client = None
 
     async def get_client(self) -> aiohttp.ClientSession:
         """Get the aiohttp client session, or create one."""
@@ -134,7 +140,7 @@ class UnauthenticatedClient(BaseClient):
 class AuthenticatedClient(UnauthenticatedClient):
     """Base class for clients that use some authentication."""
 
-    def __init__(self, cupid: Cupid, token: str):
+    def __init__(self, cupid: 'Cupid', token: str):
         """Set up the client with a token."""
         super().__init__(cupid)
         self.token = token

@@ -1,9 +1,13 @@
 """JSON types returned or accepted by the API."""
+import dataclasses
 import enum
 from datetime import datetime
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 import pydantic
+
+
+__all__ = ('Gender', 'RelationshipKind')
 
 
 class Gender(enum.Enum):
@@ -126,7 +130,7 @@ class UserSessionModel(pydantic.BaseModel):
 
 
 class UserSessionModelWithToken(UserSessionModel):
-    """A user authentication session including it's token."""
+    """A user authentication session including its token."""
 
     token: str
 
@@ -139,7 +143,7 @@ class AppModel(pydantic.BaseModel):
 
 
 class AppModelWithToken(AppModel):
-    """An API application including it's token."""
+    """An API application including its token."""
 
     token: str
 
@@ -151,12 +155,16 @@ class AuthenticatedEntity(pydantic.BaseModel):
 
 
 class AuthenticatedEntityWithToken(pydantic.BaseModel):
-    """Either an API application or a user session, including it's token."""
+    """Either an API application or a user session, including its token."""
 
     __root__: Union[AppModelWithToken, UserSessionModelWithToken]
 
 
-class CupidError(Exception, pydantic.BaseModel):
+# Use dataclass for exceptions because inheriting from Exception and
+# pydantic.BaseModel doesn't work.
+# See https://github.com/samuelcolvin/pydantic/issues/1875.
+@dataclasses.dataclass
+class CupidError(Exception):
     """An errror returned by the API."""
 
     status: int
@@ -176,14 +184,6 @@ class CupidServerError(CupidError):
     """Raised when the API indicates a server-caused error."""
 
 
-class ValidationProblem(pydantic.BaseModel):
-    """A single validation error within a document."""
-
-    loc: list[int, str]
-    msg: str
-    type: str
-
-
 class BadAuthenticationError(CupidClientError):
     """Raised when authentication is missing or invalid."""
 
@@ -200,7 +200,21 @@ class ConflictError(CupidClientError):
     """Raised when an operation conflicts with current circumstances."""
 
 
+class ValidationProblem(pydantic.BaseModel):
+    """A single validation error within a document."""
+
+    loc: list[int, str]
+    msg: str
+    type: str
+
+
 class ValidationError(CupidClientError):
     """Raised when provided data is not valid."""
 
     errors: Optional[list[ValidationProblem]]
+
+    def __init__(self, errors: Optional[list[dict[str, Any]]], **kwargs: Any):
+        """Deserialise the extended error description."""
+        if errors:
+            errors = [ValidationProblem(**error) for error in errors]
+        super().__init__(errors=errors, **kwargs)
