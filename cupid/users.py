@@ -114,10 +114,10 @@ class UserWithRelationships(User):
         self._client = client
         load_rels = lambda models: list(map(self._load_relationship, models))
         super().__init__(
-            id=model.id,
-            name=model.name,
-            discriminator=model.discriminator,
-            gender=model.gender,
+            id=model.user.id,
+            name=model.user.name,
+            discriminator=model.user.discriminator,
+            gender=model.user.gender,
             accepted_relationships=load_rels(model.relationships.accepted),
             incoming_proposals=load_rels(model.relationships.incoming),
             outgoing_proposals=load_rels(model.relationships.outgoing),
