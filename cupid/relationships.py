@@ -26,6 +26,12 @@ class Relationship(RelationshipModel):
     created_at: datetime
     accepted_at: Optional[datetime]
 
+    def __eq__(self, other: RelationshipModel) -> bool:
+        """Check if this object refers to the same relationship as another."""
+        if not isinstance(other, RelationshipModel):
+            return False
+        return self.id == other.id
+
 
 class OwnRelationship(Relationship):
     """Relationship where one of the users is the authenticated client."""

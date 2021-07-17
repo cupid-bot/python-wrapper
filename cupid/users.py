@@ -88,6 +88,12 @@ class User(UserModel):
         self._client = client
         super().__init__(**model.dict())
 
+    def __eq__(self, other: UserModel) -> bool:
+        """Check if this object refers to the same user as another."""
+        if not isinstance(other, UserModel):
+            return False
+        return self.id == other.id
+
 
 class UserWithRelationships(User):
     """A user model + client with relationships data."""

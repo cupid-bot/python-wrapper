@@ -84,6 +84,12 @@ class App(BaseAuth, AppModelWithToken):
         AppModelWithToken.__init__(self, **data)
         BaseAuth.__init__(self, client)
 
+    def __eq__(self, other: AppModel) -> bool:
+        """Check if this object refers to the same app as another."""
+        if not isinstance(other, AppModel):
+            return False
+        return self.id == other.id
+
     def _get_user_client(self, user: UserModel) -> UserAsApp:
         """Get a client for a user."""
         client = AppUserClient(
@@ -139,6 +145,12 @@ class UserSession(UserSessionModelWithToken, BaseAuth):
         data['user'] = UserAsSelf(client, model.user)
         UserSessionModelWithToken.__init__(self, **data)
         BaseAuth.__init__(self, client)
+
+    def __eq__(self, other: UserSessionModel) -> bool:
+        """Check if this object refers to the same session as another."""
+        if not isinstance(other, UserSessionModel):
+            return False
+        return self.id == other.id
 
     def _get_user_client(self, user: UserModel) -> User:
         """Get a client for a user."""
