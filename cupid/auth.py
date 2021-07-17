@@ -92,12 +92,16 @@ class App(BaseAuth, AppModelWithToken):
 
     def _get_user_client(self, user: UserModel) -> UserAsApp:
         """Get a client for a user."""
-        client = AppUserClient(
-            cupid=self._client.cupid, token=self.token, user_id=user.id,
-        )
         if isinstance(user, UserModelWithRelationships):
-            return UserAsAppWithRelationships(client, user)
-        return UserAsApp(client, user)
+            user_class = UserAsAppWithRelationships
+            user_id = user.user.id
+        else:
+            user_class = UserAsApp
+            user_id = user.id
+        client = AppUserClient(
+            cupid=self._client.cupid, token=self.token, user_id=user_id,
+        )
+        return user_class(client, user)
 
     async def create_user(
             self,
@@ -154,11 +158,15 @@ class UserSession(UserSessionModelWithToken, BaseAuth):
 
     def _get_user_client(self, user: UserModel) -> User:
         """Get a client for a user."""
-        if user.id == self.user.id:
+        if isinstance(user, UserModelWithRelationships):
+            user_class = UserWithRelationships
+            user_id = user.user.id
+        else:
+            user_class = User
+            user_id = user.id
+        if user_id == self.user.id:
             # Update our copy of the user with the new data, then return it.
             for field in user.__fields__:
                 setattr(self.user, field, getattr(user, field))
             return self.user
-        if isinstance(user, UserModelWithRelationships):
-            return UserWithRelationships(self._client, user)
-        return User(self._client, user)
+        return user_class(self._client, user)
