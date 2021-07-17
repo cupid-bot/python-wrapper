@@ -125,7 +125,7 @@ class UserRelationships(BaseModel):
     outgoing: list[RelationshipModel]
 
 
-class UserWithRelationships(BaseModel):
+class UserModelWithRelationships(BaseModel):
     """A user with all of their relationships."""
 
     user: UserModel

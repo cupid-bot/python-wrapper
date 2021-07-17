@@ -40,10 +40,10 @@ from .models import (
     RelationshipModel,
     UserData,
     UserModel,
+    UserModelWithRelationships,
     UserSearch,
     UserSessionModel,
     UserSessionModelWithToken,
-    UserWithRelationships,
     ValidationError,
 )
 
@@ -156,10 +156,10 @@ class AuthenticatedClient(UnauthenticatedClient):
         kwargs['headers']['Authorization'] = f'Bearer {self.token}'
         return await super().request(*args, **kwargs)
 
-    async def get_user(self, id: int) -> UserWithRelationships:
+    async def get_user(self, id: int) -> UserModelWithRelationships:
         """Get a user by ID."""
         return await self.request(
-            'GET', f'/user/{id}', response=UserWithRelationships,
+            'GET', f'/user/{id}', response=UserModelWithRelationships,
         )
 
     async def get_graph(self) -> GraphData:

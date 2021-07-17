@@ -9,4 +9,4 @@ TestingCupid
 ------------
 
 .. autoclass:: TestingCupid
-   :members: base_url, __init__, testing_enabled, clear_database, create_app, app, user_session, discord_authenticate, close
+   :members: base_url, __init__, testing_enabled, clear_database, create_app, register_discord_token, coverage, app, user_session, discord_authenticate, close

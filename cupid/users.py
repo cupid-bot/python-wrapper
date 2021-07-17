@@ -10,6 +10,7 @@ from .models import (
     RelationshipKind,
     UserData,
     UserModel,
+    UserModelWithRelationships,
 )
 from .relationships import OwnRelationship
 
@@ -17,20 +18,18 @@ if TYPE_CHECKING:    # pragma: no cover
     from .clients import BaseUserClient
 
 
-__all__ = ('User', 'UserAsApp', 'UserAsSelf')
+__all__ = (
+    'User',
+    'UserAsApp',
+    'UserAsAppWithRelationships',
+    'UserAsSelf',
+    'UserAsSelfWithRelationships',
+    'UserWithRelationships',
+)
 
 
-class User(UserModel):
-    """A user model + client with no permission to do anything."""
-
-    def __init__(self, client: 'BaseUserClient', model: UserModel):
-        """Set up the user as a client and model."""
-        self._client = client
-        super().__init__(**model.dict())
-
-
-class UserAsSelf(User):
-    """A user client acting on its own behalf."""
+class BaseUserAsSelf:
+    """Base class for user clients acting on their own behalf."""
 
     async def propose(
             self,
@@ -54,8 +53,8 @@ class UserAsSelf(User):
             setattr(self, field, getattr(updated, field))
 
 
-class UserAsApp(UserAsSelf):
-    """A user model and client that is authenticated with an app token."""
+class BaseUserAsApp(BaseUserAsSelf):
+    """Base class for user clients that are authenticated with app tokens."""
 
     async def edit(
             self,
@@ -78,3 +77,40 @@ class UserAsApp(UserAsSelf):
         )
         for field in updated.__fields__:
             setattr(self, field, getattr(updated, field))
+
+
+class User(UserModel):
+    """A user model + client with no permission to do anything."""
+
+    def __init__(self, client: 'BaseUserClient', model: UserModel):
+        """Set up the user as a client and model."""
+        self._client = client
+        super().__init__(**model.dict())
+
+
+class UserWithRelationships(User, UserModelWithRelationships):
+    """A user model + client with relationships data."""
+
+    def __init__(
+            self,
+            client: 'BaseUserClient',
+            model: UserModelWithRelationships):
+        """Set up the user as a client and model."""
+        self._client = client
+        UserModelWithRelationships.__init__(self, **model.dict())
+
+
+class UserAsSelf(BaseUserAsSelf, User):
+    """User client authenticated as itself."""
+
+
+class UserAsSelfWithRelationships(BaseUserAsSelf, UserWithRelationships):
+    """User client authenticated as itself, with relationship data."""
+
+
+class UserAsApp(BaseUserAsApp, User):
+    """User client authenticated with an app token."""
+
+
+class UserAsAppWithRelationships(BaseUserAsApp, UserWithRelationships):
+    """User client authenticated with an app token, with relationship data."""

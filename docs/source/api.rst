@@ -31,6 +31,13 @@ User
    :members: id, name, discriminator, avatar_url, gender
    :undoc-members:
 
+UserWithRelationships
+---------------------
+
+.. autoclass:: UserWithRelationships
+   :members: id, name, discriminator, avatar_url, gender, relationships
+   :undoc-members:
+
 UserAsSelf
 ----------
 
@@ -38,11 +45,25 @@ UserAsSelf
    :members: id, name, discriminator, avatar_url, gender, propose, relationship, set_gender
    :undoc-members:
 
+UserAsSelfWithRelationships
+---------------------------
+
+.. autoclass:: UserAsSelfWithRelationships
+   :members: id, name, discriminator, avatar_url, gender, relationships, propose, relationship, set_gender
+   :undoc-members:
+
 UserAsApp
 ---------
 
 .. autoclass:: UserAsApp
    :members: id, name, discriminator, avatar_url, gender, propose, relationship, set_gender, edit
+   :undoc-members:
+
+UserAsAppWithRelationships
+--------------------------
+
+.. autoclass:: UserAsAppWithRelationships
+   :members: id, name, discriminator, avatar_url, gender, relationships, propose, relationship, set_gender, edit
    :undoc-members:
 
 Graph

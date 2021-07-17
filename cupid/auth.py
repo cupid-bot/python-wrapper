@@ -15,12 +15,19 @@ from .models import (
     Gender,
     UserData,
     UserModel,
+    UserModelWithRelationships,
     UserSearch,
     UserSessionModel,
     UserSessionModelWithToken,
 )
 from .pagination import UserList
-from .users import User, UserAsApp, UserAsSelf
+from .users import (
+    User,
+    UserAsApp,
+    UserAsAppWithRelationships,
+    UserAsSelf,
+    UserWithRelationships,
+)
 
 
 __all__ = ('App', 'UserSession')
@@ -82,6 +89,8 @@ class App(BaseAuth, AppModelWithToken):
         client = AppUserClient(
             cupid=self._client.cupid, token=self.token, user_id=user.id,
         )
+        if isinstance(user, UserModelWithRelationships):
+            return UserAsAppWithRelationships(client, user)
         return UserAsApp(client, user)
 
     async def create_user(
@@ -138,4 +147,6 @@ class UserSession(UserSessionModelWithToken, BaseAuth):
             for field in user.__fields__:
                 setattr(self.user, field, getattr(user, field))
             return self.user
+        if isinstance(user, UserModelWithRelationships):
+            return UserWithRelationships(self._client, user)
         return User(self._client, user)
