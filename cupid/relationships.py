@@ -1,4 +1,6 @@
 """Model + client for a relationship between two users."""
+from __future__ import annotations
+
 from datetime import datetime
 from typing import Optional, TYPE_CHECKING
 

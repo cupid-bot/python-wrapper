@@ -24,6 +24,11 @@ __all__ = (
 class BaseModel(pydantic.BaseModel):
     """Base class for models of JSON data."""
 
+    class Config:
+        """Pydantic settings."""
+
+        arbitrary_types_allowed = True
+
     def __setattr__(self, attr: str, value: Any):
         """Set a model attribute or extra attribute.
 

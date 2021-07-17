@@ -8,14 +8,15 @@ from .models import (
     GenderUpdate,
     RelationshipCreate,
     RelationshipKind,
+    RelationshipModel,
     UserData,
     UserModel,
     UserModelWithRelationships,
 )
-from .relationships import OwnRelationship
+from .relationships import OwnRelationship, Relationship
 
 if TYPE_CHECKING:    # pragma: no cover
-    from .clients import BaseUserClient
+    from .clients import UnauthenticatedClient
 
 
 __all__ = (
@@ -82,22 +83,57 @@ class BaseUserAsApp(BaseUserAsSelf):
 class User(UserModel):
     """A user model + client with no permission to do anything."""
 
-    def __init__(self, client: 'BaseUserClient', model: UserModel):
+    def __init__(self, client: 'UnauthenticatedClient', model: UserModel):
         """Set up the user as a client and model."""
         self._client = client
         super().__init__(**model.dict())
 
 
-class UserWithRelationships(User, UserModelWithRelationships):
+class UserWithRelationships(User):
     """A user model + client with relationships data."""
+
+    id: int
+    name: str
+    discriminator: str
+    gender: Gender
+    accepted_relationships: list[Relationship]
+    incoming_proposals: list[Relationship]
+    outgoing_proposals: list[Relationship]
 
     def __init__(
             self,
-            client: 'BaseUserClient',
+            client: 'UnauthenticatedClient',
             model: UserModelWithRelationships):
         """Set up the user as a client and model."""
         self._client = client
-        UserModelWithRelationships.__init__(self, **model.dict())
+        load_rels = lambda models: list(map(self._load_relationship, models))
+        super().__init__(
+            id=model.id,
+            name=model.name,
+            discriminator=model.discriminator,
+            gender=model.gender,
+            accepted_relationships=load_rels(model.relationships.accepted),
+            incoming_proposals=load_rels(model.relationships.incoming),
+            outgoing_proposals=load_rels(model.relationships.outgoing),
+        )
+
+    def _load_relationship(self, model: RelationshipModel) -> Relationship:
+        """Load a relationship from a model."""
+        return Relationship(
+            id=model.id,
+            initiator=self._load_user(model.initiator),
+            other=self._load_user(model.other),
+            kind=model.kind,
+            accepted=model.accepted,
+            created_at=model.created_at,
+            accepted_at=model.accepted_at,
+        )
+
+    def _load_user(self, model: UserModel) -> User:
+        """Load a user from a model without relationships."""
+        if model.id == self.id:
+            return self
+        return User(self._client, model)
 
 
 class UserAsSelf(BaseUserAsSelf, User):
@@ -114,3 +150,9 @@ class UserAsApp(BaseUserAsApp, User):
 
 class UserAsAppWithRelationships(BaseUserAsApp, UserWithRelationships):
     """User client authenticated with an app token, with relationship data."""
+
+    def _load_user(self, model: UserModel) -> UserAsSelf:
+        """Load a user from a model without relationships."""
+        if model.id == self.id:
+            return self
+        return UserAsApp(self._client, model)
