@@ -101,6 +101,7 @@ class UserWithRelationships(User):
     id: int
     name: str
     discriminator: str
+    avatar_url: str
     gender: Gender
     accepted_relationships: list[Relationship]
     incoming_proposals: list[Relationship]
@@ -118,6 +119,7 @@ class UserWithRelationships(User):
             id=model.user.id,
             name=model.user.name,
             discriminator=model.user.discriminator,
+            avatar_url=model.user.avatar_url,
             gender=model.user.gender,
             accepted_relationships=load_rels(model.relationships.accepted),
             incoming_proposals=load_rels(model.relationships.incoming),
