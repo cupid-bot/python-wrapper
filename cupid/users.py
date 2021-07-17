@@ -85,8 +85,8 @@ class User(UserModel):
 
     def __init__(self, client: 'UnauthenticatedClient', model: UserModel):
         """Set up the user as a client and model."""
-        self._client = client
         super().__init__(**model.dict())
+        self._client = client
 
     def __eq__(self, other: UserModel) -> bool:
         """Check if this object refers to the same user as another."""
@@ -112,7 +112,6 @@ class UserWithRelationships(User):
             client: 'UnauthenticatedClient',
             model: UserModelWithRelationships):
         """Set up the user as a client and model."""
-        self._client = client
         load_rels = lambda models: list(map(self._load_relationship, models))
         UserModel.__init__(
             self,
@@ -125,6 +124,7 @@ class UserWithRelationships(User):
             incoming_proposals=load_rels(model.relationships.incoming),
             outgoing_proposals=load_rels(model.relationships.outgoing),
         )
+        self._client = client
 
     def _load_relationship(self, model: RelationshipModel) -> Relationship:
         """Load a relationship from a model."""

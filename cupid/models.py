@@ -247,6 +247,6 @@ class ValidationError(CupidClientError):
             errors: Optional[list[dict[str, Any]]] = None,
             **kwargs: Any):
         """Deserialise the extended error description."""
+        super().__init__(**kwargs)
         if errors:
             self.errors = [ValidationProblem(**error) for error in errors]
-        super().__init__(**kwargs)
