@@ -7,7 +7,7 @@ Cupid
 -----
 
 .. autoclass:: Cupid
-   :members: base_url, __init__, app, user_session, discord_authenticate
+   :members: base_url, __init__, app, user_session, discord_authenticate, close
    :undoc-members:
 
 App

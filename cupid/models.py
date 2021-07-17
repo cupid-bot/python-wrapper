@@ -7,7 +7,35 @@ from typing import Any, Optional, Union
 import pydantic
 
 
-__all__ = ('Gender', 'RelationshipKind')
+__all__ = (
+    'BadAuthenticationError',
+    'ConflictError',
+    'CupidError',
+    'CupidClientError',
+    'CupidServerError',
+    'ForbiddenError',
+    'Gender',
+    'NotFoundError',
+    'RelationshipKind',
+    'ValidationError',
+)
+
+
+class BaseModel(pydantic.BaseModel):
+    """Base class for models of JSON data."""
+
+    def __setattr__(self, attr: str, value: Any):
+        """Set a model attribute or extra attribute.
+
+        Extra attributes, prefixed with an underscore, will not be validated
+        and do not need to be declared.
+        """
+        if (
+                attr.startswith('_')
+                and (not (attr.startswith('__') and attr.endswith('__')))):
+            object.__setattr__(self, attr, value)
+        else:
+            super().__setattr__(attr, value)
 
 
 class Gender(enum.Enum):
@@ -25,7 +53,7 @@ class RelationshipKind(enum.Enum):
     ADOPTION = 'adoption'
 
 
-class UserSearch(pydantic.BaseModel):
+class UserSearch(BaseModel):
     """Options for searching for or listing users."""
 
     search: Optional[str] = None
@@ -33,25 +61,25 @@ class UserSearch(pydantic.BaseModel):
     page: int = 0
 
 
-class DiscordAuthenticate(pydantic.BaseModel):
+class DiscordAuthenticate(BaseModel):
     """Model for a Discord authentication request."""
 
     token: str
 
 
-class RelationshipCreate(pydantic.BaseModel):
+class RelationshipCreate(BaseModel):
     """Model for creating a relationship."""
 
     kind: RelationshipKind
 
 
-class GenderUpdate(pydantic.BaseModel):
+class GenderUpdate(BaseModel):
     """Model for updating a user's gender."""
 
     gender: Gender
 
 
-class UserData(pydantic.BaseModel):
+class UserData(BaseModel):
     """Data relating to a user, not including ID."""
 
     name: pydantic.constr(min_length=1, max_length=255)
@@ -66,7 +94,7 @@ class UserModel(UserData):
     id: int
 
 
-class PartialRelationship(pydantic.BaseModel):
+class PartialRelationship(BaseModel):
     """A relationship containing very minimal information."""
 
     # 'initiator' and 'other' are user IDs.
@@ -77,7 +105,7 @@ class PartialRelationship(pydantic.BaseModel):
     accepted_at: datetime
 
 
-class RelationshipModel(pydantic.BaseModel):
+class RelationshipModel(BaseModel):
     """Full data for a relationship."""
 
     id: int
@@ -89,7 +117,7 @@ class RelationshipModel(pydantic.BaseModel):
     accepted_at: Optional[datetime]
 
 
-class UserRelationships(pydantic.BaseModel):
+class UserRelationships(BaseModel):
     """All of a user's relationships."""
 
     accepted: list[RelationshipModel]
@@ -97,21 +125,21 @@ class UserRelationships(pydantic.BaseModel):
     outgoing: list[RelationshipModel]
 
 
-class UserWithRelationships(pydantic.BaseModel):
+class UserWithRelationships(BaseModel):
     """A user with all of their relationships."""
 
     user: UserModel
     relationships: UserRelationships
 
 
-class GraphData(pydantic.BaseModel):
+class GraphData(BaseModel):
     """Raw data for a relationship graph."""
 
     users: dict[int, UserModel]
     relationships: list[PartialRelationship]
 
 
-class PaginatedUsers(pydantic.BaseModel):
+class PaginatedUsers(BaseModel):
     """One page of a paginated list of users."""
 
     page: int
@@ -121,7 +149,7 @@ class PaginatedUsers(pydantic.BaseModel):
     users: list[UserModel]
 
 
-class UserSessionModel(pydantic.BaseModel):
+class UserSessionModel(BaseModel):
     """A user authentication session."""
 
     id: int
@@ -135,7 +163,7 @@ class UserSessionModelWithToken(UserSessionModel):
     token: str
 
 
-class AppModel(pydantic.BaseModel):
+class AppModel(BaseModel):
     """An API application."""
 
     id: int
@@ -148,16 +176,10 @@ class AppModelWithToken(AppModel):
     token: str
 
 
-class AuthenticatedEntity(pydantic.BaseModel):
-    """Either an API application or a user session."""
-
-    __root__: Union[AppModel, UserSessionModel]
-
-
-class AuthenticatedEntityWithToken(pydantic.BaseModel):
-    """Either an API application or a user session, including its token."""
-
-    __root__: Union[AppModelWithToken, UserSessionModelWithToken]
+AuthenticatedEntity = Union[AppModel, UserSessionModel]
+AuthenticatedEntityWithToken = Union[
+    AppModelWithToken, UserSessionModelWithToken,
+]
 
 
 # Use dataclass for exceptions because inheriting from Exception and
@@ -173,7 +195,9 @@ class CupidError(Exception):
 
     def __str__(self) -> str:
         """Get a string representation for this error."""
-        return f'Error {self.status}: {self.description} ({self.message}).'
+        description = self.description.removesuffix('.')
+        message = self.message[0].lower() + self.message[1:].removesuffix('.')
+        return f'Error {self.status}: {description} ({message}).'
 
 
 class CupidClientError(CupidError):
@@ -200,7 +224,7 @@ class ConflictError(CupidClientError):
     """Raised when an operation conflicts with current circumstances."""
 
 
-class ValidationProblem(pydantic.BaseModel):
+class ValidationProblem(BaseModel):
     """A single validation error within a document."""
 
     loc: list[int, str]
@@ -211,10 +235,13 @@ class ValidationProblem(pydantic.BaseModel):
 class ValidationError(CupidClientError):
     """Raised when provided data is not valid."""
 
-    errors: Optional[list[ValidationProblem]]
+    errors: Optional[list[ValidationProblem]] = None
 
-    def __init__(self, errors: Optional[list[dict[str, Any]]], **kwargs: Any):
+    def __init__(
+            self,
+            errors: Optional[list[dict[str, Any]]] = None,
+            **kwargs: Any):
         """Deserialise the extended error description."""
         if errors:
-            errors = [ValidationProblem(**error) for error in errors]
-        super().__init__(errors=errors, **kwargs)
+            self.errors = [ValidationProblem(**error) for error in errors]
+        super().__init__(**kwargs)

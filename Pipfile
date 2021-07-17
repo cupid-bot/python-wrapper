@@ -28,10 +28,12 @@ flake8-mutable = "*"
 mypy-extensions = "*"
 sphinx = "*"
 furo = "*"
+coverage = "*"
 
 [scripts]
 lint = "python3 -m flake8 ."
-build-docs = "sphinx-build -b html docs/source docs/build"
+test = "python3 -m tests"
+docs = "sphinx-build -b html docs/source docs/build"
 
 [requires]
 python_version = "3.9"

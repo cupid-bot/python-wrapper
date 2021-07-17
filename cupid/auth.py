@@ -1,5 +1,6 @@
 """Combined models and clients for apps and user sessions."""
-from typing import Union
+from datetime import datetime
+from typing import Optional, Union
 
 from .clients import (
     AppClient,
@@ -30,49 +31,57 @@ class BaseAuth:
 
     def __init__(self, client: AuthenticatedClient):
         """Set up the app/session as a client."""
-        self.client = client
+        self._client = client
 
-    def _get_user_client(self, user: UserModel) -> User:
+    def _get_user_client(self, user: UserModel) -> User:    # pragma: no cover
         """Get a client for a user."""
         raise NotImplementedError
 
     async def refresh_token(self):
         """Refresh the app/client's token."""
-        data = await self.client.refresh_token()
+        data = await self._client.refresh_token()
         self.token = data.token
-        self.client.token = data.token
+        self._client.token = data.token
 
     async def delete(self):
         """Delete the app/client."""
-        await self.client.delete_auth()
+        await self._client.delete_auth()
 
     async def get_user(self, user_id: int) -> User:
         """Get a user by ID."""
-        model = await self.client.get_user(user_id)
+        model = await self._client.get_user(user_id)
         return self._get_user_client(model)
 
     async def graph(self) -> Graph:
         """Get a graph of all users and their relationships."""
-        return Graph(await self.client.get_graph(), self._get_user_client)
+        return Graph(await self._client.get_graph(), self._get_user_client)
 
     def users(
             self, search: str, *, per_page: int = 20) -> UserList:
         """Get a page of user search results."""
         search = UserSearch(search=search, per_page=per_page)
-        return UserList(self.client, search, self._get_user_client)
+        return UserList(self._client, search, self._get_user_client)
 
 
 class App(BaseAuth, AppModelWithToken):
     """An app and its associated data."""
 
-    def __init__(self, client: AppClient, model: AppModel, token: str):
+    def __init__(
+            self,
+            client: AppClient,
+            model: AppModel,
+            token: Optional[str] = None):
         """Set up the app as a client and model."""
+        data = model.dict()
+        data['token'] = data.get('token', token)
+        AppModelWithToken.__init__(self, **data)
         BaseAuth.__init__(self, client)
-        AppModelWithToken.__init__(self, **model.dict(), token=token)
 
     def _get_user_client(self, user: UserModel) -> UserAsApp:
         """Get a client for a user."""
-        client = AppUserClient(token=self.token, user_id=user.id)
+        client = AppUserClient(
+            cupid=self._client.cupid, token=self.token, user_id=user.id,
+        )
         return UserAsApp(client, user)
 
     async def create_user(
@@ -89,7 +98,7 @@ class App(BaseAuth, AppModelWithToken):
         """
         if isinstance(discriminator, int):
             discriminator = f'{discriminator:>04}'
-        model = await self.client.set_user(
+        model = await self._client.set_user(
             id,
             UserData(
                 name=name or self.name,
@@ -101,18 +110,26 @@ class App(BaseAuth, AppModelWithToken):
         return self._get_user_client(model)
 
 
-class UserSession(BaseAuth, UserSessionModelWithToken):
+class UserSession(UserSessionModelWithToken, BaseAuth):
     """A user session and its associated data."""
+
+    id: int
+    user: UserAsSelf
+    expires_at: datetime
+    token: str
 
     def __init__(
             self,
             client: UserSessionClient,
             model: UserSessionModel,
-            token: str):
+            token: Optional[str] = None):
         """Set up the session as a client and model."""
+        data = model.dict()
+        if token:
+            data['token'] = token
+        data['user'] = UserAsSelf(client, model.user)
+        UserSessionModelWithToken.__init__(self, **data)
         BaseAuth.__init__(self, client)
-        UserSessionModelWithToken.__init__(self, **model.dict(), token=token)
-        self.user = UserAsSelf(client, self.user)
 
     def _get_user_client(self, user: UserModel) -> User:
         """Get a client for a user."""
@@ -121,4 +138,4 @@ class UserSession(BaseAuth, UserSessionModelWithToken):
             for field in user.__fields__:
                 setattr(self.user, field, getattr(user, field))
             return self.user
-        return User(self.client, user)
+        return User(self._client, user)

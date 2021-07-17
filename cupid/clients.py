@@ -17,6 +17,7 @@ Types marked in [brackets] are base classes not intended for direct use.
 from typing import Any, Literal, Optional, TYPE_CHECKING, Type, TypeVar, Union
 
 import aiohttp
+from aiohttp.client import _RequestContextManager
 
 import pydantic
 
@@ -46,7 +47,7 @@ from .models import (
     ValidationError,
 )
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:    # pragma: no cover
     from .cupid import Cupid
 
 
@@ -62,13 +63,23 @@ class BaseClient:
     def __init__(self, cupid: 'Cupid'):
         """Set up the client."""
         self.cupid = cupid
-        self.client = None
 
-    async def get_client(self) -> aiohttp.ClientSession:
-        """Get the aiohttp client session, or create one."""
-        if (not self.client) or self.client.closed:
-            self.client = aiohttp.ClientSession()
-        return self.client
+    async def http_request(
+            self,
+            method: Literal['GET', 'POST', 'PATCH', 'PUT', 'DELETE'],
+            endpoint: str,
+            *,
+            response_mime_type: str = 'application/json',
+            **aiohttp_kwargs: Any) -> _RequestContextManager:
+        """Make a request and handle the response."""
+        client = await self.cupid._get_client()  # noqa: SF01
+        url = f'{self.cupid.base_url}{endpoint}'
+        aiohttp_kwargs['headers'] = aiohttp_kwargs.get('headers', {})
+        aiohttp_kwargs['headers']['Accept'] = response_mime_type
+        aiohttp_kwargs['headers']['User-Agent'] = (
+            'Python-Cupid/Artemis21/AioHttp/Python3'
+        )
+        return client.request(method, url, **aiohttp_kwargs)
 
     async def handle_response(
             self,
@@ -78,10 +89,10 @@ class BaseClient:
         if response.status < 300:
             if data_type:
                 data = await response.json()
-                return data_type(**data)
+                return pydantic.parse_obj_as(data_type, data)
             return None
         error = await response.json()
-        if response.status >= 500:
+        if response.status >= 500:    # pragma: no cover
             raise CupidServerError(**error)
         elif response.status == 401:
             raise BadAuthenticationError(**error)
@@ -106,20 +117,14 @@ class BaseClient:
             headers: Optional[dict[str, str]] = None,
             response: Type[T] = None) -> T:
         """Make a request and handle the response."""
-        client = await self.get_client()
-        url = f'{self.base_url}{endpoint}'
         kwargs = {}
         if body:
-            kwargs['json'] = body.dict()
+            kwargs['data'] = body.json().encode()
         if params:
             kwargs['params'] = body.dict()
-        kwargs['headers'] = {
-            'Accept': 'application/json',
-            'User-Agent': 'Python-Cupid/Artemis21/AioHttp/Python3',
-        }
         if headers:
-            kwargs['headers'].update(headers)
-        async with client.request(method, url, **kwargs) as resp:
+            kwargs['headers'] = headers
+        async with await self.http_request(method, endpoint, **kwargs) as resp:
             return await self.handle_response(resp, response)
 
 
@@ -149,7 +154,7 @@ class AuthenticatedClient(UnauthenticatedClient):
         """Make a request with an authorisation header."""
         kwargs['headers'] = kwargs.get('headers', {})
         kwargs['headers']['Authorization'] = f'Bearer {self.token}'
-        return super().request(*args, **kwargs)
+        return await super().request(*args, **kwargs)
 
     async def get_user(self, id: int) -> UserWithRelationships:
         """Get a user by ID."""
@@ -282,4 +287,4 @@ class AppUserClient(AppClient, BaseUserClient):
         """Make a request with a cupid-user header."""
         kwargs['headers'] = kwargs.get('headers', {})
         kwargs['headers']['Cupid-User'] = str(self.user_id)
-        return super().request(*args, **kwargs)
+        return await super().request(*args, **kwargs)

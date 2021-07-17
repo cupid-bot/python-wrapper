@@ -4,7 +4,7 @@ from typing import Optional, TYPE_CHECKING
 
 from .models import RelationshipKind, RelationshipModel
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:    # pragma: no cover
     from .clients import BaseUserClient
     from .users import User
 
@@ -34,17 +34,17 @@ class OwnRelationship(Relationship):
             client: 'BaseUserClient',
             own_id: int):
         """Set up the model and client."""
-        self.own_id = own_id
-        self.opposite_id = (
+        self._own_id = own_id
+        self._opposite_id = (
             self.initiator.id if self.other.id == self.own_id
             else self.other.id
         )
-        self.client = client
-        super().__init__(self, **model.dict())
+        self._client = client
+        super().__init__(**model.dict())
 
     async def accept(self):
         """Accept the relationship (must be a proposal)."""
-        data = await self.client.accept_proposal(self.opposite_id)
+        data = await self._client.accept_proposal(self._opposite_id)
         for field in data.__fields__:
             setattr(self, field, getattr(data, field))
 
@@ -54,4 +54,4 @@ class OwnRelationship(Relationship):
         This rejects the relationship if it is a proposal, or leaves it if it
         has been accepted.
         """
-        await self.client.leave_relationship(self.opposite_id)
+        await self._client.leave_relationship(self._opposite_id)

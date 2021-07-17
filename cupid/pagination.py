@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Callable, Optional, TYPE_CHECKING
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:    # pragma: no cover
     from .clients import AuthenticatedClient
     from .models import UserModel, UserSearch
     from .users import User
@@ -21,7 +21,7 @@ class UserList:
             search: 'UserSearch',
             get_user_client: Callable[['UserModel'], 'User']):
         """Set up the paginator."""
-        self.client = client
+        self._client = client
         self.search = search
         self._get_user_client = get_user_client
         self.total_results = search.per_page    # Meaningless default.
@@ -37,7 +37,7 @@ class UserList:
     async def get_page(self, page: int = 0) -> list['User']:
         """Get a specific page of results."""
         self.search.page = page
-        raw = await self.client.get_user_page(self.search)
+        raw = await self._client.get_user_page(self.search)
         self.total_results = raw.total
         return list(map(self._get_user_client, raw.users))
 

@@ -4,7 +4,7 @@ from typing import Callable, TYPE_CHECKING
 from .models import GraphData, UserModel
 from .relationships import Relationship
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:    # pragma: no cover
     from .users import User
 
 

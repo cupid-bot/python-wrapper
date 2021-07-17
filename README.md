@@ -1,6 +1,6 @@
 <img src="docs/source/static/logo.png" alt="Cupid Logo" width="200"></img>
 
-# Cupid Python Wrapper (0.2.1)
+# Cupid Python Wrapper
 
 This is a wrapper written in Python for the Cupid API.
 
@@ -14,4 +14,5 @@ Once you have pipenv installed:
 1. **Create a virtual environment:** `python3 -m pipenv shell`
 3. **Install development dependencies:** `pipenv install -d`
 3. **Lint the project:** `pipenv run lint`
-4. **Build the docs:** `pipenv run build-docs`
+4. **Run unit tests:** `pipenv run test`
+5. **Build the docs:** `pipenv run docs`
