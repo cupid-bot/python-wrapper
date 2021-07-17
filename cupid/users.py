@@ -113,7 +113,8 @@ class UserWithRelationships(User):
         """Set up the user as a client and model."""
         self._client = client
         load_rels = lambda models: list(map(self._load_relationship, models))
-        super().__init__(
+        UserModel.__init__(
+            self,
             id=model.user.id,
             name=model.user.name,
             discriminator=model.user.discriminator,
