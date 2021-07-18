@@ -77,7 +77,7 @@ UserList
 --------
 
 .. autoclass:: UserList
-   :members: __len__, get_page, flatten, __aiter__
+   :members: __len__, total_results, total_pages, get_page, flatten, __aiter__
    :undoc-members:
 
 Gender

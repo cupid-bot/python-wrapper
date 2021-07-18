@@ -24,7 +24,9 @@ class UserList:
         self._client = client
         self.search = search
         self._get_user_client = get_user_client
-        self.total_results = search.per_page    # Meaningless default.
+        # Set meaningless defaults for metadata.
+        self.total_results = search.per_page
+        self.total_pages = 1
 
     def __len__(self) -> int:
         """Get the number of users in the full list.
@@ -39,6 +41,7 @@ class UserList:
         self.search.page = page
         raw = await self._client.get_user_page(self.search)
         self.total_results = raw.total
+        self.total_pages = raw.pages
         return list(map(self._get_user_client, raw.users))
 
     async def flatten(self, limit: Optional[int] = None) -> list['User']:
