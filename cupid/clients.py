@@ -122,7 +122,7 @@ class BaseClient:
             kwargs['data'] = body.json().encode()
         if params:
             kwargs['params'] = params.dict()
-            for key, value in kwargs['params'].items():
+            for key, value in list(kwargs['params'].items()):
                 # Null values should be represented by not including the key.
                 if value is None:
                     del kwargs['params'][key]
