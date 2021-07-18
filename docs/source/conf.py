@@ -11,7 +11,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).parent.parent.parent))
 project = 'Python Cupid'
 copyright = '2021, Artemis'
 author = 'Artemis'
-release = '0.3.9'
+release = '0.3.10'
 
 extensions = ['sphinx.ext.autodoc']
 templates_path = ['templates']

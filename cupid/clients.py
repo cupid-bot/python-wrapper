@@ -122,6 +122,10 @@ class BaseClient:
             kwargs['data'] = body.json().encode()
         if params:
             kwargs['params'] = params.dict()
+            for key, value in kwargs['params'].items():
+                # Null values should be represented by not including the key.
+                if value is None:
+                    del kwargs['params'][key]
         if headers:
             kwargs['headers'] = headers
         async with await self.http_request(method, endpoint, **kwargs) as resp:

@@ -64,7 +64,10 @@ class BaseAuth:
         return Graph(await self._client.get_graph(), self._get_user_client)
 
     def users(
-            self, search: str, *, per_page: int = 20) -> UserList:
+            self,
+            search: Optional[str] = None,
+            *,
+            per_page: int = 20) -> UserList:
         """Get a page of user search results."""
         search = UserSearch(search=search, per_page=per_page)
         return UserList(self._client, search, self._get_user_client)
