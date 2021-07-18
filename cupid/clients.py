@@ -121,7 +121,7 @@ class BaseClient:
         if body:
             kwargs['data'] = body.json().encode()
         if params:
-            kwargs['params'] = body.dict()
+            kwargs['params'] = params.dict()
         if headers:
             kwargs['headers'] = headers
         async with await self.http_request(method, endpoint, **kwargs) as resp:
