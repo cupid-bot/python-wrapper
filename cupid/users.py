@@ -14,11 +14,11 @@ from .models import (
     UserModel,
     UserModelWithRelationships,
 )
+from .relationships import OwnRelationship, Relationship
 
 if TYPE_CHECKING:    # pragma: no cover
     from .auth import BaseAuth
     from .clients import AppUserClient, AuthenticatedClient, BaseUserClient
-    from .relationships import OwnRelationship, Relationship
 
 
 __all__ = (
