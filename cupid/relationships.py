@@ -90,9 +90,7 @@ class OwnRelationship(Relationship):
 
     async def accept(self):
         """Accept the relationship (must be a proposal)."""
-        data = await self._client.accept_proposal(self._opposite_id)
-        for field in data.__fields__:
-            setattr(self, field, getattr(data, field))
+        self._model = await self._client.accept_proposal(self._opposite_id)
 
     async def delete(self):
         """Delete the relationship.

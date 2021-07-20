@@ -186,8 +186,7 @@ class UserSession(BaseAuth):
         """Get a client for a user."""
         if user.id == self.user.id:
             # Update our copy of the user with the new data, then return it.
-            for field in user.__fields__:
-                setattr(self.user, field, getattr(user, field))
+            self.user._model = user  # noqa: SF01
             return self.user
         return super()._get_user_client(user)
 
@@ -196,7 +195,6 @@ class UserSession(BaseAuth):
             user: UserModelWithRelationships) -> Union[
                 UserWithRelationships, UserAsSelfWithRelationships]:
         if user.user.id == self.user.id:
-            for field in user.user.__fields__:
-                setattr(self.user, field, getattr(user, field))
+            self.user._model = user.user  # noqa: SF01
             return UserAsSelfWithRelationships(self._client, self, user)
         return super()._get_user_client_with_relationships(user)

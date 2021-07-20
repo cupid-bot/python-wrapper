@@ -102,9 +102,7 @@ class UserAsSelf(User):
     async def set_gender(self, gender: Union[Gender, str]):
         """Change the user's gender."""
         data = GenderUpdate(gender=gender)
-        updated = await self._client.update_gender(data)
-        for field in updated.__fields__:
-            setattr(self, field, getattr(updated, field))
+        self._model = await self._client.update_gender(data)
 
 
 class UserAsApp(UserAsSelf):
@@ -122,7 +120,7 @@ class UserAsApp(UserAsSelf):
         """Update the user's information."""
         if isinstance(discriminator, int):
             discriminator = f'{discriminator:>04}'
-        updated = await self._client.set_user(
+        self._model = await self._client.set_user(
             self.id,
             UserData(
                 name=name or self.name,
@@ -131,8 +129,6 @@ class UserAsApp(UserAsSelf):
                 gender=gender or self.gender,
             ),
         )
-        for field in updated.__fields__:
-            setattr(self, field, getattr(updated, field))
 
 
 class UserWithRelationships(User):

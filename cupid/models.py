@@ -4,7 +4,7 @@ import enum
 from datetime import datetime
 from typing import Any, Optional, Union
 
-import pydantic
+from pydantic import BaseModel, constr
 
 
 __all__ = (
@@ -19,28 +19,6 @@ __all__ = (
     'RelationshipKind',
     'ValidationError',
 )
-
-
-class BaseModel(pydantic.BaseModel):
-    """Base class for models of JSON data."""
-
-    class Config:
-        """Pydantic settings."""
-
-        arbitrary_types_allowed = True
-
-    def __setattr__(self, attr: str, value: Any):
-        """Set a model attribute or extra attribute.
-
-        Extra attributes, prefixed with an underscore, will not be validated
-        and do not need to be declared.
-        """
-        if (
-                attr.startswith('_')
-                and (not (attr.startswith('__') and attr.endswith('__')))):
-            object.__setattr__(self, attr, value)
-        else:
-            super().__setattr__(attr, value)
 
 
 class Gender(enum.Enum):
@@ -87,9 +65,9 @@ class GenderUpdate(BaseModel):
 class UserData(BaseModel):
     """Data relating to a user, not including ID."""
 
-    name: pydantic.constr(min_length=1, max_length=255)
-    discriminator: pydantic.constr(regex=r'^[0-9]{4}$')    # noqa:F722
-    avatar_url: pydantic.constr(min_length=7, max_length=255)
+    name: constr(min_length=1, max_length=255)
+    discriminator: constr(regex=r'^[0-9]{4}$')    # noqa:F722
+    avatar_url: constr(min_length=7, max_length=255)
     gender: Gender
 
 
