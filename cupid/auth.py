@@ -1,4 +1,6 @@
 """Combined models and clients for apps and user sessions."""
+from __future__ import annotations
+
 from datetime import datetime
 from typing import Optional, Union
 
@@ -11,14 +13,14 @@ from .clients import (
 from .graphs import Graph
 from .models import (
     AppModel,
-    AppModelWithToken,
+    AuthenticatedEntity,
+    AuthenticatedEntityWithToken,
     Gender,
     UserData,
     UserModel,
     UserModelWithRelationships,
     UserSearch,
     UserSessionModel,
-    UserSessionModelWithToken,
 )
 from .pagination import UserList
 from .users import (
@@ -26,6 +28,7 @@ from .users import (
     UserAsApp,
     UserAsAppWithRelationships,
     UserAsSelf,
+    UserAsSelfWithRelationships,
     UserWithRelationships,
 )
 
@@ -36,13 +39,24 @@ __all__ = ('App', 'UserSession')
 class BaseAuth:
     """Base class for apps and clients."""
 
-    def __init__(self, client: AuthenticatedClient):
+    def __init__(
+            self,
+            client: AuthenticatedClient,
+            model: Union[AuthenticatedEntity, AuthenticatedEntityWithToken],
+            token: Optional[str] = None):
         """Set up the app/session as a client."""
+        self.token: str = getattr(model, 'token', token)
+        self._model = model
         self._client = client
 
-    def _get_user_client(self, user: UserModel) -> User:    # pragma: no cover
+    def _get_user_client(self, user: UserModel) -> User:
         """Get a client for a user."""
-        raise NotImplementedError
+        return User(self._client, self, user)
+
+    def _get_user_client_with_relationships(
+            self, user: UserModelWithRelationships) -> UserWithRelationships:
+        """Get a client for a user with relationship data."""
+        return UserWithRelationships(self._client, self, user)
 
     async def refresh_token(self):
         """Refresh the app/client's token."""
@@ -57,11 +71,15 @@ class BaseAuth:
     async def get_user(self, user_id: int) -> User:
         """Get a user by ID."""
         model = await self._client.get_user(user_id)
-        return self._get_user_client(model)
+        return self._get_user_client_with_relationships(model)
 
     async def graph(self) -> Graph:
         """Get a graph of all users and their relationships."""
-        return Graph(await self._client.get_graph(), self._get_user_client)
+        return Graph(
+            self._client,
+            self,
+            await self._client.get_graph(),
+        )
 
     def users(
             self,
@@ -69,42 +87,47 @@ class BaseAuth:
             *,
             per_page: int = 20) -> UserList:
         """Get a page of user search results."""
-        search = UserSearch(search=search, per_page=per_page)
-        return UserList(self._client, search, self._get_user_client)
+        data = UserSearch(search=search, per_page=per_page)
+        return UserList(self._client, data, self._get_user_client)
 
 
-class App(BaseAuth, AppModelWithToken):
+class App(BaseAuth):
     """An app and its associated data."""
 
-    def __init__(
-            self,
-            client: AppClient,
-            model: AppModel,
-            token: Optional[str] = None):
-        """Set up the app as a client and model."""
-        data = model.dict()
-        data['token'] = data.get('token', token)
-        AppModelWithToken.__init__(self, **data)
-        BaseAuth.__init__(self, client)
+    _client: AppClient
+    _model: AppModel
 
-    def __eq__(self, other: AppModel) -> bool:
+    @property
+    def id(self) -> int:
+        """Get the app's ID."""
+        return self._model.id
+
+    @property
+    def name(self) -> str:
+        """Get the app's name."""
+        return self._model.name
+
+    def __eq__(self, other: App) -> bool:
         """Check if this object refers to the same app as another."""
-        if not isinstance(other, AppModel):
+        if not isinstance(other, App):
             return False
         return self.id == other.id
 
     def _get_user_client(self, user: UserModel) -> UserAsApp:
         """Get a client for a user."""
-        if isinstance(user, UserModelWithRelationships):
-            user_class = UserAsAppWithRelationships
-            user_id = user.user.id
-        else:
-            user_class = UserAsApp
-            user_id = user.id
         client = AppUserClient(
-            cupid=self._client.cupid, token=self.token, user_id=user_id,
+            cupid=self._client.cupid, token=self.token, user_id=user.id,
         )
-        return user_class(client, user)
+        return UserAsApp(client, self, user)
+
+    def _get_user_client_with_relationships(
+            self,
+            user: UserModelWithRelationships) -> UserAsAppWithRelationships:
+        """Get a client for a user with relationship data."""
+        client = AppUserClient(
+            cupid=self._client.cupid, token=self.token, user_id=user.user.id,
+        )
+        return UserAsAppWithRelationships(client, self, user)
 
     async def create_user(
             self,
@@ -123,35 +146,35 @@ class App(BaseAuth, AppModelWithToken):
         model = await self._client.set_user(
             id,
             UserData(
-                name=name or self.name,
-                discriminator=discriminator or self.discriminator,
-                avatar_url=avatar_url or self.avatar_url,
-                gender=gender or self.gender,
+                name=name,
+                discriminator=discriminator,
+                avatar_url=avatar_url,
+                gender=gender,
             ),
         )
         return self._get_user_client(model)
 
 
-class UserSession(UserSessionModelWithToken, BaseAuth):
+class UserSession(BaseAuth):
     """A user session and its associated data."""
 
-    id: int
-    user: UserAsSelf
-    expires_at: datetime
-    token: str
+    _client: UserSessionClient
+    _model: UserSessionModel
 
-    def __init__(
-            self,
-            client: UserSessionClient,
-            model: UserSessionModel,
-            token: Optional[str] = None):
-        """Set up the session as a client and model."""
-        data = model.dict()
-        if token:
-            data['token'] = token
-        data['user'] = UserAsSelf(client, model.user)
-        UserSessionModelWithToken.__init__(self, **data)
-        BaseAuth.__init__(self, client)
+    @property
+    def id(self) -> int:
+        """Get the session's ID."""
+        return self._model.id
+
+    @property
+    def expires_at(self) -> datetime:
+        """Get the time at which the session will expire."""
+        return self._model.expires_at
+
+    @property
+    def user(self) -> UserAsSelf:
+        """Get the user who's session this is."""
+        return UserAsSelf(self._client, self, self._model.user)
 
     def __eq__(self, other: UserSessionModel) -> bool:
         """Check if this object refers to the same session as another."""
@@ -159,17 +182,21 @@ class UserSession(UserSessionModelWithToken, BaseAuth):
             return False
         return self.id == other.id
 
-    def _get_user_client(self, user: UserModel) -> User:
+    def _get_user_client(self, user: UserModel) -> Union[User, UserAsSelf]:
         """Get a client for a user."""
-        if isinstance(user, UserModelWithRelationships):
-            user_class = UserWithRelationships
-            user_id = user.user.id
-        else:
-            user_class = User
-            user_id = user.id
-        if user_id == self.user.id:
+        if user.id == self.user.id:
             # Update our copy of the user with the new data, then return it.
             for field in user.__fields__:
                 setattr(self.user, field, getattr(user, field))
             return self.user
-        return user_class(self._client, user)
+        return super()._get_user_client(user)
+
+    def _get_user_client_with_relationships(
+            self,
+            user: UserModelWithRelationships) -> Union[
+                UserWithRelationships, UserAsSelfWithRelationships]:
+        if user.user.id == self.user.id:
+            for field in user.user.__fields__:
+                setattr(self.user, field, getattr(user, field))
+            return UserAsSelfWithRelationships(self._client, self, user)
+        return super()._get_user_client_with_relationships(user)

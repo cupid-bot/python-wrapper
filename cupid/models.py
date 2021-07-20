@@ -102,6 +102,7 @@ class UserModel(UserData):
 class PartialRelationship(BaseModel):
     """A relationship containing very minimal information."""
 
+    id: int
     # 'initiator' and 'other' are user IDs.
     initiator: int
     other: int
@@ -232,7 +233,7 @@ class ConflictError(CupidClientError):
 class ValidationProblem(BaseModel):
     """A single validation error within a document."""
 
-    loc: list[int, str]
+    loc: list[Union[int, str]]
     msg: str
     type: str
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import Optional, TYPE_CHECKING, Union
 
+from . import relationships
 from .models import (
     Gender,
     GenderUpdate,
@@ -13,10 +14,11 @@ from .models import (
     UserModel,
     UserModelWithRelationships,
 )
-from .relationships import OwnRelationship, Relationship
 
 if TYPE_CHECKING:    # pragma: no cover
-    from .clients import UnauthenticatedClient
+    from .auth import BaseAuth
+    from .clients import AppUserClient, AuthenticatedClient, BaseUserClient
+    from .relationships import OwnRelationship, Relationship
 
 
 __all__ = (
@@ -29,22 +31,73 @@ __all__ = (
 )
 
 
-class BaseUserAsSelf:
+class User:
+    """A user model + client with no permission to do anything."""
+
+    def __init__(
+            self,
+            client: 'AuthenticatedClient',
+            auth: 'BaseAuth',
+            model: UserModel):
+        """Set up the user as a client and model."""
+        self._model = model
+        self._auth = auth
+        self._client = client
+
+    @property
+    def id(self) -> int:
+        """Get the app's ID."""
+        return self._model.id
+
+    @property
+    def name(self) -> str:
+        """Get the user's name."""
+        return self._model.name
+
+    @property
+    def discriminator(self) -> str:
+        """Get the user's discriminator."""
+        return self._model.discriminator
+
+    @property
+    def avatar_url(self) -> str:
+        """Get the user's avatar URL."""
+        return self._model.avatar_url
+
+    @property
+    def gender(self) -> Gender:
+        """Get the user's gender."""
+        return self._model.gender
+
+    def __eq__(self, other: UserModel) -> bool:
+        """Check if this object refers to the same user as another."""
+        if not isinstance(other, UserModel):
+            return False
+        return self.id == other.id
+
+
+class UserAsSelf(User):
     """Base class for user clients acting on their own behalf."""
+
+    _client: 'BaseUserClient'
 
     async def propose(
             self,
             other: User,
-            kind: Union[RelationshipKind, str]) -> OwnRelationship:
+            kind: Union[RelationshipKind, str]) -> 'OwnRelationship':
         """Propose to another user."""
         data = RelationshipCreate(kind=kind)
         model = await self._client.propose_relationship(other.id, data)
-        return OwnRelationship(self._client, model, self.id)
+        return relationships.OwnRelationship(
+            self._client, self._auth, model, self.id,
+        )
 
-    async def relationship(self, other: User) -> OwnRelationship:
+    async def relationship(self, other: User) -> 'OwnRelationship':
         """Get the user's relationship with another user."""
         model = await self._client.get_relationship(other.id)
-        return OwnRelationship(self._client, model, self.id)
+        return relationships.OwnRelationship(
+            self._client, self._auth, model, self.id,
+        )
 
     async def set_gender(self, gender: Union[Gender, str]):
         """Change the user's gender."""
@@ -54,8 +107,10 @@ class BaseUserAsSelf:
             setattr(self, field, getattr(updated, field))
 
 
-class BaseUserAsApp(BaseUserAsSelf):
+class UserAsApp(UserAsSelf):
     """Base class for user clients that are authenticated with app tokens."""
+
+    _client: AppUserClient
 
     async def edit(
             self,
@@ -80,88 +135,67 @@ class BaseUserAsApp(BaseUserAsSelf):
             setattr(self, field, getattr(updated, field))
 
 
-class User(UserModel):
-    """A user model + client with no permission to do anything."""
-
-    def __init__(self, client: 'UnauthenticatedClient', model: UserModel):
-        """Set up the user as a client and model."""
-        super().__init__(**model.dict())
-        self._client = client
-
-    def __eq__(self, other: UserModel) -> bool:
-        """Check if this object refers to the same user as another."""
-        if not isinstance(other, UserModel):
-            return False
-        return self.id == other.id
-
-
 class UserWithRelationships(User):
     """A user model + client with relationships data."""
 
-    id: int
-    name: str
-    discriminator: str
-    avatar_url: str
-    gender: Gender
-    accepted_relationships: list[Relationship]
-    incoming_proposals: list[Relationship]
-    outgoing_proposals: list[Relationship]
-
     def __init__(
             self,
-            client: 'UnauthenticatedClient',
+            client: 'AuthenticatedClient',
+            auth: 'BaseAuth',
             model: UserModelWithRelationships):
         """Set up the user as a client and model."""
-        load_rels = lambda models: list(map(self._load_relationship, models))
-        UserModel.__init__(
-            self,
-            id=model.user.id,
-            name=model.user.name,
-            discriminator=model.user.discriminator,
-            avatar_url=model.user.avatar_url,
-            gender=model.user.gender,
-            accepted_relationships=load_rels(model.relationships.accepted),
-            incoming_proposals=load_rels(model.relationships.incoming),
-            outgoing_proposals=load_rels(model.relationships.outgoing),
-        )
-        self._client = client
+        super().__init__(client, auth, model.user)
+        self._model_with_relationships = model
 
-    def _load_relationship(self, model: RelationshipModel) -> Relationship:
+    @property
+    def accepted_relationships(self) -> list['Relationship']:
+        """Get a list of the user's accepted relationships."""
+        return self._load_relationships(
+            self._model_with_relationships.relationships.accepted,
+        )
+
+    @property
+    def incoming_proposals(self) -> list['Relationship']:
+        """Get a list of the user's incoming proposals."""
+        return self._load_relationships(
+            self._model_with_relationships.relationships.incoming,
+        )
+
+    @property
+    def outgoing_proposals(self) -> list['Relationship']:
+        """Get a list of the user's outgoing proposals."""
+        return self._load_relationships(
+            self._model_with_relationships.relationships.outgoing,
+        )
+
+    def _load_relationships(
+            self, models: list[RelationshipModel]) -> list['Relationship']:
+        """Load a list of relationships from models."""
+        return list(map(self._load_relationship, models))
+
+    def _load_relationship(
+            self, model: RelationshipModel) -> 'Relationship':
         """Load a relationship from a model."""
         return Relationship(
-            id=model.id,
-            initiator=self._load_user(model.initiator),
-            other=self._load_user(model.other),
-            kind=model.kind,
-            accepted=model.accepted,
-            created_at=model.created_at,
-            accepted_at=model.accepted_at,
+            client=self._client,
+            auth=self._auth,
+            model=model,
         )
 
-    def _load_user(self, model: UserModel) -> User:
-        """Load a user from a model without relationships."""
-        if model.id == self.id:
-            return self
-        return User(self._client, model)
 
-
-class UserAsSelf(BaseUserAsSelf, User):
-    """User client authenticated as itself."""
-
-
-class UserAsSelfWithRelationships(BaseUserAsSelf, UserWithRelationships):
-    """User client authenticated as itself, with relationship data."""
-
-
-class UserAsApp(BaseUserAsApp, User):
-    """User client authenticated with an app token."""
-
-
-class UserAsAppWithRelationships(BaseUserAsApp, UserWithRelationships):
+class UserAsSelfWithRelationships(UserAsSelf, UserWithRelationships):
     """User client authenticated with an app token, with relationship data."""
 
-    def _load_user(self, model: UserModel) -> UserAsSelf:
-        """Load a user from a model without relationships."""
-        if model.id == self.id:
-            return self
-        return UserAsApp(self._client, model)
+    def _load_relationship(
+            self, model: RelationshipModel) -> 'OwnRelationship':
+        """Load a relationship from a model."""
+        return OwnRelationship(
+            client=self._client,
+            auth=self._auth,
+            model=model,
+            own_id=self.id,
+        )
+
+
+class UserAsAppWithRelationships(UserAsApp, UserAsSelfWithRelationships):
+    """User client authenticated with an app token, with relationship data."""

@@ -87,10 +87,10 @@ class BaseClient:
             data_type: Type[T]) -> T:
         """Handle a response from the API."""
         if response.status < 300:
-            if data_type:
-                data = await response.json()
-                return pydantic.parse_obj_as(data_type, data)
-            return None
+            if data_type is None:
+                return None
+            data = await response.json()
+            return pydantic.parse_obj_as(data_type, data)
         error = await response.json()
         if response.status >= 500:    # pragma: no cover
             raise CupidServerError(**error)
