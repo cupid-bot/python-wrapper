@@ -69,9 +69,9 @@ class User:
         """Get the user's gender."""
         return self._model.gender
 
-    def __eq__(self, other: UserModel) -> bool:
+    def __eq__(self, other: User) -> bool:
         """Check if this object refers to the same user as another."""
-        if not isinstance(other, UserModel):
+        if not isinstance(other, User):
             return False
         return self.id == other.id
 
