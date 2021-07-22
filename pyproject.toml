@@ -1,0 +1,43 @@
+[tool.poetry]
+name = "cupid"
+version = "0.4.5"
+description = "A Python wrapper for the Cupid API."
+authors = ["Artemis21 <artemisdev21@gmail.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+aiohttp = "^3.7.4"
+pydantic = "^1.8.2"
+
+[tool.poetry.dev-dependencies]
+flake8 = "^3.9.2"
+flake8-annotations = "^2.6.2"
+flake8-bugbear = "^21.4.3"
+flake8-docstrings = "^1.6.0"
+flake8-import-order = "^0.18.1"
+flake8-string-format = "^0.3.0"
+flake8-tidy-imports = "^4.3.0"
+flake8-todo = "^0.7"
+flake8-datetimez = "^20.10.0"
+flake8-functions = "^0.0.6"
+flake8-commas = "^2.0.0"
+flake8-continuation = "^1.0.5"
+flake8-comprehensions = "^3.5.0"
+flake8-quotes = "^3.2.0"
+flake8-self = "^0.2.2"
+flake8-raise = "^0.0.5"
+flake8-mutable = "^1.2.0"
+mypy-extensions = "^0.4.3"
+coverage = "^5.5"
+poethepoet = "^0.10.0"
+furo = "^2021.7.5-beta.38"
+Sphinx = "^4.1.1"
+
+[tool.poe.tasks]
+lint = "python3 -m flake8 ."
+test = "python3 -m tests"
+docs = "sphinx-build -b html docs/source docs/build"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
