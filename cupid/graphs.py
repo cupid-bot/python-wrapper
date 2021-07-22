@@ -37,8 +37,8 @@ class Graph:
                 auth,
                 RelationshipModel(
                     id=raw.id,
-                    initiator=self.users[raw.initiator],
-                    other=self.users[raw.other],
+                    initiator=data.users[raw.initiator],
+                    other=data.users[raw.other],
                     kind=raw.kind,
                     # Only accepted relationships are shown in graphs.
                     accepted=True,
