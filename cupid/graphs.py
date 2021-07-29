@@ -47,5 +47,3 @@ class Graph:
                 ),
             ) for raw in data.relationships
         ]
-
-    # TODO: Add utility functions once we have more of an idea what we'll need.

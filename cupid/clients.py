@@ -166,6 +166,12 @@ class AuthenticatedClient(UnauthenticatedClient):
             'GET', f'/user/{id}', response=UserModelWithRelationships,
         )
 
+    async def get_user_graph(self, id: int) -> GraphData:
+        """Get a graph of all users related (even distantly) to one."""
+        return await self.request(
+            'GET', f'/user/{id}/graph', response=GraphData,
+        )
+
     async def get_graph(self) -> GraphData:
         """Get a graph of all users and their relationships."""
         return await self.request('GET', '/users/graph', response=GraphData)

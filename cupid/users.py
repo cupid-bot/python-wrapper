@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Optional, TYPE_CHECKING, Union
 
 from . import relationships
+from .graphs import Graph
 from .models import (
     Gender,
     GenderUpdate,
@@ -74,6 +75,14 @@ class User:
         if not isinstance(other, User):
             return False
         return self.id == other.id
+
+    async def graph(self) -> Graph:
+        """Get a graph of all users related (even distantly) to this one."""
+        return Graph(
+            self._client,
+            self._auth,
+            await self._client.get_user_graph(self.id),
+        )
 
 
 class UserAsSelf(User):

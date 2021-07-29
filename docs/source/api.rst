@@ -28,42 +28,42 @@ User
 ----
 
 .. autoclass:: User
-   :members: id, name, discriminator, avatar_url, gender
+   :members: id, name, discriminator, avatar_url, gender, graph
    :undoc-members:
 
 UserWithRelationships
 ---------------------
 
 .. autoclass:: UserWithRelationships
-   :members: id, name, discriminator, avatar_url, gender, accepted_relationships, incoming_proposals, outgoing_proposals
+   :members: id, name, discriminator, avatar_url, gender, accepted_relationships, incoming_proposals, outgoing_proposals, graph
    :undoc-members:
 
 UserAsSelf
 ----------
 
 .. autoclass:: UserAsSelf
-   :members: id, name, discriminator, avatar_url, gender, propose, relationship, set_gender
+   :members: id, name, discriminator, avatar_url, gender, propose, relationship, set_gender, graph
    :undoc-members:
 
 UserAsSelfWithRelationships
 ---------------------------
 
 .. autoclass:: UserAsSelfWithRelationships
-   :members: id, name, discriminator, avatar_url, gender, accepted_relationships, incoming_proposals, outgoing_proposals, propose, relationship, set_gender
+   :members: id, name, discriminator, avatar_url, gender, accepted_relationships, incoming_proposals, outgoing_proposals, propose, relationship, set_gender, graph
    :undoc-members:
 
 UserAsApp
 ---------
 
 .. autoclass:: UserAsApp
-   :members: id, name, discriminator, avatar_url, gender, propose, accepted_relationships, incoming_proposals, outgoing_proposals, set_gender, edit
+   :members: id, name, discriminator, avatar_url, gender, propose, accepted_relationships, incoming_proposals, outgoing_proposals, set_gender, edit, graph
    :undoc-members:
 
 UserAsAppWithRelationships
 --------------------------
 
 .. autoclass:: UserAsAppWithRelationships
-   :members: id, name, discriminator, avatar_url, gender, accepted_relationships, incoming_proposals, outgoing_proposals, propose, relationship, set_gender, edit
+   :members: id, name, discriminator, avatar_url, gender, accepted_relationships, incoming_proposals, outgoing_proposals, propose, relationship, set_gender, edit, graph
    :undoc-members:
 
 Graph
