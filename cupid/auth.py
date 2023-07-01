@@ -134,13 +134,15 @@ class App(BaseAuth):
             id: int,
             *,
             name: str,
-            discriminator: Union[str, int],
+            discriminator: Union[str, int, None],
             avatar_url: str,
             gender: Union[Gender, str]) -> UserAsApp:
         """Create a new user.
 
         If the ID is already registered, updates and returns that user.
         """
+        if discriminator in (0, "0", "0000"):
+            discriminator = None
         if isinstance(discriminator, int):
             discriminator = f'{discriminator:>04}'
         model = await self._client.set_user(

@@ -66,9 +66,9 @@ class UserData(BaseModel):
     """Data relating to a user, not including ID."""
 
     name: constr(min_length=1, max_length=255)
-    discriminator: constr(regex=r'^[0-9]{4}$')    # noqa:F722
     avatar_url: constr(min_length=7, max_length=255)
     gender: Gender
+    discriminator: Optional[constr(regex=r'^[0-9]{1,4}$')] = None    # noqa:F722
 
 
 class UserModel(UserData):
